@@ -38,10 +38,11 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // Configuration - IMPORTANT: Change APP_URL after you deploy
+        // Configuration
         const apiKey = ""; 
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbTuT3cgeNjEKVl39ek-RpDeTxBWfpmditY5C6GHitz-bEU_APGi6gxW8KBD53rSIXyKA/exec"; 
-        const APP_URL = "https://your-username.github.io/repository-name/"; 
+        // UPDATED: Your live GitHub URL
+        const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/"; 
 
         // Fixed Icons implementation using Lucide createSvgElement
         const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
@@ -49,12 +50,10 @@
             
             useEffect(() => {
                 const renderIcon = () => {
-                    // Check if lucide exists on window
                     const lucideObj = window.lucide;
                     if (lucideObj && lucideObj.icons) {
                         const iconData = lucideObj.icons[name];
                         if (iconData) {
-                            // Convert the icon array structure to an SVG string manually for reliability
                             const [tagName, attributes, children] = iconData;
                             
                             const attrs = {
@@ -82,7 +81,6 @@
                     }
                 };
 
-                // Small delay to ensure lucide library is parsed
                 if (window.lucide) {
                     renderIcon();
                 } else {
