@@ -1,308 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promoter Self-Discovery Diagnostic</title>
-    <!-- Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React and Babel for running React in the browser -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
-    <style>
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 10px;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        .result-text {
-            line-height: 1.8;
-            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Promoter Self-Discovery Diagnostic</title>
+
+  <!-- Tailwind CSS for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React and Babel for running React in the browser -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: fadeIn 0.5s ease-out forwards; }
+    .result-text {
+      line-height: 1.8;
+      font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+  </style>
 </head>
+
 <body class="bg-[#F8FAFC]">
-    <div id="root"></div>
+  <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        
-        // --- CONFIGURATION START ---
-        const GEMINI_API_KEY = "AIzaSyCqpuk-w0BHdaI1BbeuJYROj1-73H_em-I"; 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQ6DBPTEn4Pw2fpFGz0VLB6Ahc4EqRLX7kTO4bhUg7Fci8pwZ5fYCLvyLTfRAf925xSw/exec"; 
-        const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/"; 
-        // --- CONFIGURATION END ---
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-        const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
-            const [iconHtml, setIconHtml] = useState("");
-            useEffect(() => {
-                const renderIcon = () => {
-                    const lucideObj = window.lucide;
-                    if (lucideObj && lucideObj.icons) {
-                        const iconData = lucideObj.icons[name];
-                        if (iconData) {
-                            const [tagName, attributes, children] = iconData;
-                            const attrs = {
-                                ...attributes,
-                                width: size,
-                                height: size,
-                                'stroke-width': strokeWidth,
-                                class: `lucide lucide-${name.toLowerCase()} ${className}`,
-                                xmlns: "http://www.w3.org/2000/svg"
-                            };
-                            const attrString = Object.entries(attrs).map(([key, value]) => `${key}="${value}"`).join(' ');
-                            const childrenString = children.map(([childTag, childAttrs]) => {
-                                const childAttrStr = Object.entries(childAttrs).map(([k, v]) => `${k}="${v}"`).join(' ');
-                                return `<${childTag} ${childAttrStr}></${childTag}>`;
-                            }).join('');
-                            setIconHtml(`<svg ${attrString}>${childrenString}</svg>`);
-                        }
-                    }
-                };
-                if (window.lucide) renderIcon(); else setTimeout(renderIcon, 100);
-            }, [name, size, className, strokeWidth]);
-            return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: iconHtml }} />;
-        };
+    // --- CONFIGURATION START ---
+    // Paste your Google Apps Script Web App URL here (the one ending with /exec)
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyj5SfiwZfmgsYWrYvV7ijiyvv7IZgdIbjA6Hgki28H6fYqoJsGu76MMA8lWsncyaAdXg/exec";
+    const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/";
+    // --- CONFIGURATION END ---
 
-        const SECTIONS = [
-            {
-                title: "Section A: Decision Pressure & Business Reality",
-                questions: [
-                    { id: 1, text: "Q1. Which business situations create the highest personal pressure for you today?", options: ["Large financial commitments (capex, guarantees)", "Managing cash flows and working capital", "Scaling operations without loss of control", "People and leadership decisions", "Dealing with banks, investors, or lenders", "Family or ownership-related matters", "Staying competitive in the market", "I feel comfortable handling most situations"], type: "multi" },
-                    { id: 2, text: "Q2. When faced with an important business decision, what is your first instinct?", options: ["Trust my own judgment based on experience", "Discuss internally with my senior team", "Check financial implications carefully", "Seek perspective from someone experienced", "Delay decision until more clarity emerges"], type: "single" },
-                    { id: 3, text: "Q3. How would you describe your current management structure?", options: ["Strong leadership team with clear accountability", "Capable operational team, strategic decisions stay with me", "Management exists but depends heavily on me", "Mostly promoter-driven", "Still evolving / not clearly defined"], type: "single" },
-                    { id: 4, text: "Q4. Which statement best reflects your approach to delegation?", options: ["I delegate freely and review outcomes", "I delegate but stay closely involved", "I prefer to take final decisions myself", "I find delegation difficult in critical matters"], type: "single" },
-                    { id: 5, text: "Q5. How confident are you in the quality of financial information you receive?", options: ["Very confident – timely and decision-oriented", "Generally reliable but not insightful", "Accurate but delayed", "Too technical, not decision-friendly", "I mostly rely on my own understanding"], type: "single" },
-                    { id: 6, text: "Q6. Which of these statements resonates most with you?", options: ["Growth opportunities excite me more than risks worry me", "I balance growth and risk cautiously", "I worry more about downside than upside", "I avoid major risks unless absolutely necessary"], type: "single" },
-                    { id: 7, text: "Q7. When things go wrong, what usually causes the most stress?", options: ["Financial strain or liquidity pressure", "Execution gaps in the organization", "People issues or leadership gaps", "External factors beyond control", "Decision-making uncertainty"], type: "single" },
-                    { id: 8, text: "Q8. How often do you feel the need for a neutral, independent perspective before major decisions?", options: ["Very often", "Sometimes", "Rarely", "Almost never"], type: "single" }
-                ]
-            },
-            {
-                title: "Section B: Self-Discovery – Management & Decision Style",
-                questions: [
-                    { id: 9, text: "Q9. Which role do you play most often in your business?", options: ["Visionary & growth driver", "Financial controller & risk manager", "Operational problem solver", "Relationship builder", "All of the above"], type: "single" },
-                    { id: 10, text: "Q10. How would you describe your decision-making speed?", options: ["Fast and intuitive", "Fast but data-backed", "Deliberate and cautious", "Slow due to multiple considerations"], type: "single" },
-                    { id: 11, text: "Q11. What usually limits your ability to scale faster?", options: ["Capital availability", "Leadership bandwidth", "Systems and processes", "Market uncertainty", "My own comfort with risk"], type: "single" },
-                    { id: 12, text: "Q12. When advisors or experts give you input, what do you value most?", options: ["Clear thinking, not jargon", "Experience with similar situations", "Ability to challenge my views", "Practical and implementable insights", "Confidentiality and trust"], type: "single" },
-                    { id: 13, text: "Q13. How do you usually prepare for large financial or strategic decisions?", options: ["Detailed analysis and scenarios", "Discussions with trusted people", "Past experience and intuition", "Combination of all", "Often under time pressure"], type: "single" },
-                    { id: 14, text: "Q14. How do you view control in your business?", options: ["Necessary to stay involved deeply", "Important but can be shared gradually", "Comfortable with professional management", "Still figuring this out"], type: "single" },
-                    { id: 15, text: "Q15. Which of these best reflects your long-term concern?", options: ["Sustained growth", "Financial stability", "Smooth succession", "Preserving control and values", "Balancing business and personal life"], type: "single" },
-                    { id: 16, text: "Q16. Open Reflection (Optional): What is one decision or challenge you wish you had handled differently in the past?", options: [], type: "text" }
-                ]
+    const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
+      const [iconHtml, setIconHtml] = useState("");
+      useEffect(() => {
+        const renderIcon = () => {
+          const lucideObj = window.lucide;
+          if (lucideObj && lucideObj.icons) {
+            const iconData = lucideObj.icons[name];
+            if (iconData) {
+              const [tagName, attributes, children] = iconData;
+              const attrs = {
+                ...attributes,
+                width: size,
+                height: size,
+                "stroke-width": strokeWidth,
+                class: `lucide lucide-${name.toLowerCase()} ${className}`,
+                xmlns: "http://www.w3.org/2000/svg",
+              };
+              const attrString = Object.entries(attrs).map(([key, value]) => `${key}="${value}"`).join(" ");
+              const childrenString = children.map(([childTag, childAttrs]) => {
+                const childAttrStr = Object.entries(childAttrs).map(([k, v]) => `${k}="${v}"`).join(" ");
+                return `<${childTag} ${childAttrStr}></${childTag}>`;
+              }).join("");
+              setIconHtml(`<svg ${attrString}>${childrenString}</svg>`);
             }
-        ];
+          }
+        };
+        if (window.lucide) renderIcon();
+        else setTimeout(renderIcon, 100);
+      }, [name, size, className, strokeWidth]);
 
-        function App() {
-            const [step, setStep] = useState('welcome');
-            const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-            const [answers, setAnswers] = useState({});
-            const [loading, setLoading] = useState(false);
-            const [feedback, setFeedback] = useState('');
-            const [error, setError] = useState('');
-            const [copySuccess, setCopySuccess] = useState(false);
+      return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: iconHtml }} />;
+    };
 
-            const handleSingleSelect = (qId, value) => {
-                setAnswers(prev => ({ ...prev, [qId]: value }));
-            };
+    const SECTIONS = [
+      {
+        title: "Section A: Decision Pressure & Business Reality",
+        questions: [
+          { id: 1, text: "Q1. Which business situations create the highest personal pressure for you today?", options: ["Large financial commitments (capex, guarantees)", "Managing cash flows and working capital", "Scaling operations without loss of control", "People and leadership decisions", "Dealing with banks, investors, or lenders", "Family or ownership-related matters", "Staying competitive in the market", "I feel comfortable handling most situations"], type: "multi" },
+          { id: 2, text: "Q2. When faced with an important business decision, what is your first instinct?", options: ["Trust my own judgment based on experience", "Discuss internally with my senior team", "Check financial implications carefully", "Seek perspective from someone experienced", "Delay decision until more clarity emerges"], type: "single" },
+          { id: 3, text: "Q3. How would you describe your current management structure?", options: ["Strong leadership team with clear accountability", "Capable operational team, strategic decisions stay with me", "Management exists but depends heavily on me", "Mostly promoter-driven", "Still evolving / not clearly defined"], type: "single" },
+          { id: 4, text: "Q4. Which statement best reflects your approach to delegation?", options: ["I delegate freely and review outcomes", "I delegate but stay closely involved", "I prefer to take final decisions myself", "I find delegation difficult in critical matters"], type: "single" },
+          { id: 5, text: "Q5. How confident are you in the quality of financial information you receive?", options: ["Very confident – timely and decision-oriented", "Generally reliable but not insightful", "Accurate but delayed", "Too technical, not decision-friendly", "I mostly rely on my own understanding"], type: "single" },
+          { id: 6, text: "Q6. Which of these statements resonates most with you?", options: ["Growth opportunities excite me more than risks worry me", "I balance growth and risk cautiously", "I worry more about downside than upside", "I avoid major risks unless absolutely necessary"], type: "single" },
+          { id: 7, text: "Q7. When things go wrong, what usually causes the most stress?", options: ["Financial strain or liquidity pressure", "Execution gaps in the organization", "People issues or leadership gaps", "External factors beyond control", "Decision-making uncertainty"], type: "single" },
+          { id: 8, text: "Q8. How often do you feel the need for a neutral, independent perspective before major decisions?", options: ["Very often", "Sometimes", "Rarely", "Almost never"], type: "single" },
+        ],
+      },
+      {
+        title: "Section B: Self-Discovery – Management & Decision Style",
+        questions: [
+          { id: 9, text: "Q9. Which role do you play most often in your business?", options: ["Visionary & growth driver", "Financial controller & risk manager", "Operational problem solver", "Relationship builder", "All of the above"], type: "single" },
+          { id: 10, text: "Q10. How would you describe your decision-making speed?", options: ["Fast and intuitive", "Fast but data-backed", "Deliberate and cautious", "Slow due to multiple considerations"], type: "single" },
+          { id: 11, text: "Q11. What usually limits your ability to scale faster?", options: ["Capital availability", "Leadership bandwidth", "Systems and processes", "Market uncertainty", "My own comfort with risk"], type: "single" },
+          { id: 12, text: "Q12. When advisors or experts give you input, what do you value most?", options: ["Clear thinking, not jargon", "Experience with similar situations", "Ability to challenge my views", "Practical and implementable insights", "Confidentiality and trust"], type: "single" },
+          { id: 13, text: "Q13. How do you usually prepare for large financial or strategic decisions?", options: ["Detailed analysis and scenarios", "Discussions with trusted people", "Past experience and intuition", "Combination of all", "Often under time pressure"], type: "single" },
+          { id: 14, text: "Q14. How do you view control in your business?", options: ["Necessary to stay involved deeply", "Important but can be shared gradually", "Comfortable with professional management", "Still figuring this out"], type: "single" },
+          { id: 15, text: "Q15. Which of these best reflects your long-term concern?", options: ["Sustained growth", "Financial stability", "Smooth succession", "Preserving control and values", "Balancing business and personal life"], type: "single" },
+          { id: 16, text: "Q16. Open Reflection (Optional): What is one decision or challenge you wish you had handled differently in the past?", options: [], type: "text" },
+        ],
+      },
+    ];
 
-            const handleMultiSelect = (qId, value) => {
-                const current = answers[qId] || [];
-                const updated = current.includes(value) 
-                    ? current.filter(item => item !== value)
-                    : [...current, value];
-                setAnswers(prev => ({ ...prev, [qId]: updated }));
-            };
+    function App() {
+      const [step, setStep] = useState("welcome");
+      const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+      const [answers, setAnswers] = useState({});
+      const [loading, setLoading] = useState(false);
+      const [feedback, setFeedback] = useState("");
+      const [error, setError] = useState("");
+      const [copySuccess, setCopySuccess] = useState(false);
 
-            const copyToClipboard = () => {
-                const el = document.createElement('textarea');
-                el.value = feedback;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-                setCopySuccess(true);
-                setTimeout(() => setCopySuccess(false), 2000);
-            };
+      const handleSingleSelect = (qId, value) => {
+        setAnswers((prev) => ({ ...prev, [qId]: value }));
+      };
 
-            const submitDiagnosis = async () => {
-                if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_API_KEY_HERE") {
-                    setError("System Error: API Configuration missing.");
-                    return;
-                }
+      const handleMultiSelect = (qId, value) => {
+        const current = answers[qId] || [];
+        const updated = current.includes(value)
+          ? current.filter((item) => item !== value)
+          : [...current, value];
+        setAnswers((prev) => ({ ...prev, [qId]: updated }));
+      };
 
-                setLoading(true);
-                setError('');
-                try {
-                    if (SCRIPT_URL) {
-                        const sheetPayload = { timestamp: new Date().toLocaleString(), type: "Diagnosis", answers: answers };
-                        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(sheetPayload) });
-                    }
+      const copyToClipboard = () => {
+        const el = document.createElement("textarea");
+        el.value = feedback;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      };
 
-                    const systemPrompt = `You are an elite, concise business advisor. 
-                    Analyze the diagnostic answers provided.
-                    
-                    MANDATORY STRUCTURE:
-                    1. MANAGEMENT STYLE SUMMARY (1 sharp sentence)
-                    2. PRIMARY BOTTLENECKS (3 specific bullets based on their answers)
-                    3. STRATEGIC SCALING INSIGHT (Crucial: Provide 1 actionable insight on how they can scale specifically addressing the limitations they selected in Q11)
-                    4. BLIND SPOT (1 high-impact warning)
-
-                    CONSTRAINTS:
-                    - Be extremely brief. Total response under 180 words.
-                    - NO MARKDOWN BOLDING (**). Use only plain text.
-                    - Use (-) for bullets.
-                    - Address the user as "You".
-                    - Ensure the "Scaling Insight" section is distinct and highly visible.`;
-
-                    const userMessage = `User Data: ${JSON.stringify(answers)}`;
-                    
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            contents: [{ parts: [{ text: userMessage }] }],
-                            systemInstruction: { parts: [{ text: systemPrompt }] }
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.error) throw new Error(result.error.message);
-
-                    let text = result.candidates?.[0]?.content?.parts?.[0]?.text || "No analysis generated.";
-                    text = text.replace(/\*\*/g, '').trim();
-                    
-                    setFeedback(text);
-                    setStep('result');
-                } catch (err) {
-                    setError("Analysis Error: " + err.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            return (
-                <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center p-4 sm:p-8 font-sans text-slate-900">
-                    <div className="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mt-4 sm:mt-10 relative">
-                        {step === 'quiz' && (
-                            <div className="h-1.5 w-full bg-slate-100">
-                                <div className="h-full bg-indigo-600 transition-all duration-700" style={{ width: `${((currentSectionIndex + 1) / SECTIONS.length) * 100}%` }} />
-                            </div>
-                        )}
-
-                        <div className="p-6 sm:p-10 text-center">
-                            {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 font-medium">{error}</div>}
-
-                            {step === 'welcome' && (
-                                <div className="space-y-8 animate-in">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600">
-                                            <Icon name="Activity" size={48} strokeWidth={1.5} />
-                                        </div>
-                                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Promoter Diagnostic</h1>
-                                        <p className="text-slate-500 max-w-sm mx-auto">Get a high-impact snapshot of your management bottlenecks and scaling potential.</p>
-                                    </div>
-                                    <button onClick={() => setStep('quiz')} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95">
-                                        Start Diagnostic <Icon name="ArrowRight" />
-                                    </button>
-                                </div>
-                            )}
-
-                            {step === 'quiz' && (
-                                <div className="space-y-10 animate-in text-left">
-                                    <header>
-                                        <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">Part {currentSectionIndex + 1}</span>
-                                        <h2 className="text-2xl font-bold text-slate-800 mt-2">{SECTIONS[currentSectionIndex].title}</h2>
-                                    </header>
-                                    
-                                    <div className="space-y-8">
-                                        {SECTIONS[currentSectionIndex].questions.map((q) => (
-                                            <div key={q.id} className="space-y-4">
-                                                <p className="text-lg font-semibold text-slate-700 leading-snug">{q.text}</p>
-                                                {q.type === 'text' ? (
-                                                    <textarea className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 min-h-[120px] outline-none transition-shadow" placeholder="Share your thoughts here..." onChange={(e) => handleSingleSelect(q.id, e.target.value)} />
-                                                ) : (
-                                                    <div className="grid gap-2">
-                                                        {q.options.map((opt) => (
-                                                            <button key={opt} onClick={() => q.type === 'multi' ? handleMultiSelect(q.id, opt) : handleSingleSelect(q.id, opt)} className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${ (q.type === 'multi' ? (answers[q.id] || []).includes(opt) : answers[q.id] === opt) ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-semibold shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white'}`}>
-                                                                {opt}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="pt-8 border-t border-slate-100 flex justify-between items-center">
-                                        {currentSectionIndex > 0 ? (
-                                            <button onClick={() => setCurrentSectionIndex(0)} className="text-slate-400 font-bold hover:text-slate-600 transition-colors">Back</button>
-                                        ) : <div></div>}
-                                        <button onClick={() => currentSectionIndex === 0 ? setCurrentSectionIndex(1) : submitDiagnosis()} disabled={loading} className={`bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-md transition-all active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-indigo-700 hover:shadow-lg'}`}>
-                                            {loading ? "Generating Insight..." : (currentSectionIndex === 0 ? "Next Section" : "Get Final Results")}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 'result' && (
-                                <div className="space-y-6 animate-in">
-                                    <div className="flex flex-col items-center gap-2 mb-2">
-                                        <div className="p-3 bg-green-50 text-green-600 rounded-full">
-                                            <Icon name="Zap" size={32} />
-                                        </div>
-                                        <h2 className="text-2xl font-bold text-slate-800">Your Decision Snapshot</h2>
-                                    </div>
-                                    
-                                    <div className="relative group">
-                                        <div className="bg-[#1E293B] text-slate-100 p-8 rounded-2xl text-left whitespace-pre-wrap result-text font-medium text-base leading-relaxed border-4 border-slate-800 shadow-2xl overflow-hidden min-h-[300px]">
-                                            {feedback}
-                                        </div>
-                                        <button 
-                                            onClick={copyToClipboard}
-                                            className="absolute top-4 right-4 bg-slate-700/50 hover:bg-slate-700 text-white p-2 rounded-lg transition-all border border-slate-600 flex items-center gap-2 text-xs font-bold"
-                                        >
-                                            {copySuccess ? <><Icon name="Check" size={14} /> Copied</> : <><Icon name="Copy" size={14} /> Copy Results</>}
-                                        </button>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <button onClick={() => {
-                                            const message = `Promoter Decision Snapshot:\n\n${feedback}\n\nAssess your management style here: ${APP_URL}`;
-                                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                                        }} className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg">
-                                            <Icon name="Share2" /> Share on WhatsApp
-                                        </button>
-                                        <button onClick={() => setStep('welcome')} className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-xl transition-all active:scale-95">
-                                            Restart
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <p className="mt-8 text-slate-400 text-xs font-medium">© 2025 Promoter Self-Discovery Diagnostic</p>
-                </div>
-            );
+      const submitDiagnosis = async () => {
+        if (!SCRIPT_URL || SCRIPT_URL === "https://script.google.com/macros/s/AKfycbyj5SfiwZfmgsYWrYvV7ijiyvv7IZgdIbjA6Hgki28H6fYqoJsGu76MMA8lWsncyaAdXg/exec") {
+          setError("System Error: Please paste your Google Apps Script Web App URL in SCRIPT_URL.");
+          return;
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+        setLoading(true);
+        setError("");
+
+        try {
+          // 1) Save to Google Sheet (same behavior as earlier: fire-and-forget)
+          const sheetPayload = {
+            timestamp: new Date().toLocaleString(),
+            type: "Diagnosis",
+            answers: answers,
+          };
+
+          fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(sheetPayload),
+          }).catch(() => { /* ignore */ });
+
+          // 2) AI analysis via Google Apps Script (NO frontend key)
+          const systemPrompt = `You are an elite, concise business advisor. 
+Analyze the diagnostic answers provided.
+
+MANDATORY STRUCTURE:
+1. MANAGEMENT STYLE SUMMARY (1 sharp sentence)
+2. PRIMARY BOTTLENECKS (3 specific bullets based on their answers)
+3. STRATEGIC SCALING INSIGHT (Crucial: Provide 1 actionable insight on how they can scale specifically addressing the limitations they selected in Q11)
+4. BLIND SPOT (1 high-impact warning)
+
+CONSTRAINTS:
+- Be extremely brief. Total response under 180 words.
+- NO MARKDOWN BOLDING (**). Use only plain text.
+- Use (-) for bullets.
+- Address the user as "You".
+- Ensure the "Scaling Insight" section is distinct and highly visible.`;
+
+          const userMessage = `User Data: ${JSON.stringify(answers)}`;
+
+          const aiRes = await fetch(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt: systemPrompt + "\n\n" + userMessage,
+              meta: { app: APP_URL, type: "Diagnosis" },
+            }),
+          });
+
+          const result = await aiRes.json();
+          if (!result.ok) throw new Error(result.error || "No response from AI proxy.");
+
+          let text = result.answer || "No analysis generated.";
+          text = String(text).replace(/\*\*/g, "").trim();
+
+          setFeedback(text);
+          setStep("result");
+        } catch (err) {
+          setError("Analysis Error: " + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center p-4 sm:p-8 font-sans text-slate-900">
+          <div className="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mt-4 sm:mt-10 relative">
+            {step === "quiz" && (
+              <div className="h-1.5 w-full bg-slate-100">
+                <div
+                  className="h-full bg-indigo-600 transition-all duration-700"
+                  style={{ width: `${((currentSectionIndex + 1) / SECTIONS.length) * 100}%` }}
+                />
+              </div>
+            )}
+
+            <div className="p-6 sm:p-10 text-center">
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 font-medium">
+                  {error}
+                </div>
+              )}
+
+              {step === "welcome" && (
+                <div className="space-y-8 animate-in">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600">
+                      <Icon name="Activity" size={48} strokeWidth={1.5} />
+                    </div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                      Promoter Diagnostic
+                    </h1>
+                    <p className="text-slate-500 max-w-sm mx-auto">
+                      Get a high-impact snapshot of your management bottlenecks and scaling potential.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setStep("quiz")}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+                  >
+                    Start Diagnostic <Icon name="ArrowRight" />
+                  </button>
+                </div>
+              )}
+
+              {step === "quiz" && (
+                <div className="space-y-10 animate-in text-left">
+                  <header>
+                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
+                      Part {currentSectionIndex + 1}
+                    </span>
+                    <h2 className="text-2xl font-bold text-slate-800 mt-2">
+                      {SECTIONS[currentSectionIndex].title}
+                    </h2>
+                  </header>
+
+                  <div className="space-y-8">
+                    {SECTIONS[currentSectionIndex].questions.map((q) => (
+                      <div key={q.id} className="space-y-4">
+                        <p className="text-lg font-semibold text-slate-700 leading-snug">{q.text}</p>
+                        {q.type === "text" ? (
+                          <textarea
+                            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 min-h-[120px] outline-none transition-shadow"
+                            placeholder="Share your thoughts here..."
+                            onChange={(e) => handleSingleSelect(q.id, e.target.value)}
+                          />
+                        ) : (
+                          <div className="grid gap-2">
+                            {q.options.map((opt) => (
+                              <button
+                                key={opt}
+                                onClick={() =>
+                                  q.type === "multi"
+                                    ? handleMultiSelect(q.id, opt)
+                                    : handleSingleSelect(q.id, opt)
+                                }
+                                className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                                  (q.type === "multi"
+                                    ? (answers[q.id] || []).includes(opt)
+                                    : answers[q.id] === opt)
+                                    ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-semibold shadow-sm"
+                                    : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200 hover:bg-white"
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-8 border-t border-slate-100 flex justify-between items-center">
+                    {currentSectionIndex > 0 ? (
+                      <button
+                        onClick={() => setCurrentSectionIndex(0)}
+                        className="text-slate-400 font-bold hover:text-slate-600 transition-colors"
+                      >
+                        Back
+                      </button>
+                    ) : (
+                      <div></div>
+                    )}
+
+                    <button
+                      onClick={() =>
+                        currentSectionIndex === 0 ? setCurrentSectionIndex(1) : submitDiagnosis()
+                      }
+                      disabled={loading}
+                      className={`bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-md transition-all active:scale-95 ${
+                        loading ? "opacity-70 cursor-not-allowed" : "hover:bg-indigo-700 hover:shadow-lg"
+                      }`}
+                    >
+                      {loading
+                        ? "Generating Insight..."
+                        : currentSectionIndex === 0
+                        ? "Next Section"
+                        : "Get Final Results"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {step === "result" && (
+                <div className="space-y-6 animate-in">
+                  <div className="flex flex-col items-center gap-2 mb-2">
+                    <div className="p-3 bg-green-50 text-green-600 rounded-full">
+                      <Icon name="Zap" size={32} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800">Your Decision Snapshot</h2>
+                  </div>
+
+                  <div className="relative group">
+                    <div className="bg-[#1E293B] text-slate-100 p-8 rounded-2xl text-left whitespace-pre-wrap result-text font-medium text-base leading-relaxed border-4 border-slate-800 shadow-2xl overflow-hidden min-h-[300px]">
+                      {feedback}
+                    </div>
+                    <button
+                      onClick={copyToClipboard}
+                      className="absolute top-4 right-4 bg-slate-700/50 hover:bg-slate-700 text-white p-2 rounded-lg transition-all border border-slate-600 flex items-center gap-2 text-xs font-bold"
+                    >
+                      {copySuccess ? (
+                        <>
+                          <Icon name="Check" size={14} /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="Copy" size={14} /> Copy Results
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => {
+                        const message = `Promoter Decision Snapshot:\n\n${feedback}\n\nAssess your management style here: ${APP_URL}`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+                      }}
+                      className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg"
+                    >
+                      <Icon name="Share2" /> Share on WhatsApp
+                    </button>
+
+                    <button
+                      onClick={() => setStep("welcome")}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-xl transition-all active:scale-95"
+                    >
+                      Restart
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="mt-8 text-slate-400 text-xs font-medium">© 2025 Promoter Self-Discovery Diagnostic</p>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
 </body>
 </html>
