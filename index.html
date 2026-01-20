@@ -354,6 +354,7 @@ CONSTRAINTS:
                           <textarea
                             className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 min-h-[120px] outline-none transition-shadow"
                             placeholder="Share your thoughts here..."
+                            value={answers[q.id] || ""}
                             onChange={(e) => handleSingleSelect(q.id, e.target.value)}
                           />
                         ) : (
