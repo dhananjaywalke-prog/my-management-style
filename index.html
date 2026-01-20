@@ -210,13 +210,13 @@
         setDebugLogs([]); // Clear previous logs
         addDebugLog("Starting submission...");
 
-        // Timeout safety
+        // Timeout safety - increased to 45 seconds for OpenAI API calls
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => {
           setLoading(false);
-          setError("Analysis timed out after 30 seconds. Check browser console and try again.");
-          addDebugLog("TIMEOUT after 30 seconds");
-        }, 30000);
+          setError("Analysis timed out after 45 seconds. This may indicate an OpenAI API issue. Please check the Google Apps Script Executions tab for errors.");
+          addDebugLog("TIMEOUT after 45 seconds - likely OpenAI API delay or error");
+        }, 45000);
 
         const systemPrompt = `You are an elite, concise business advisor. 
 Analyze the diagnostic answers provided.
@@ -405,7 +405,15 @@ CONSTRAINTS:
                       }`}
                     >
                       {loading
-                        ? "Generating Insight..."
+                        ? (
+                          <span className="flex items-center gap-2">
+                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                            Generating Insight...
+                          </span>
+                        )
                         : currentSectionIndex === 0
                         ? "Next Section"
                         : "Get Final Results"}
