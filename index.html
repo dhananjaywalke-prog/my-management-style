@@ -38,7 +38,6 @@
     // -----------------------------
     // CONFIGURATION (ONLY EDIT THIS)
     // -----------------------------
-    // Paste your Google Apps Script Web App URL (must end with /exec)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznF2APjqTFfkwn-UG_Q7gcdUFkuECJ0bDDC8BhZZTtJ0T8tebkiWchzOYWM3o9aPrVkw/exec";
     const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/";
     // -----------------------------
@@ -89,14 +88,14 @@
           { id: 2, text: "Q2. When faced with an important business decision, what is your first instinct?", options: ["Trust my own judgment based on experience", "Discuss internally with my senior team", "Check financial implications carefully", "Seek perspective from someone experienced", "Delay decision until more clarity emerges"], type: "single" },
           { id: 3, text: "Q3. How would you describe your current management structure?", options: ["Strong leadership team with clear accountability", "Capable operational team, strategic decisions stay with me", "Management exists but depends heavily on me", "Mostly promoter-driven", "Still evolving / not clearly defined"], type: "single" },
           { id: 4, text: "Q4. Which statement best reflects your approach to delegation?", options: ["I delegate freely and review outcomes", "I delegate but stay closely involved", "I prefer to take final decisions myself", "I find delegation difficult in critical matters"], type: "single" },
-          { id: 5, text: "Q5. How confident are you in the quality of financial information you receive?", options: ["Very confident – timely and decision-oriented", "Generally reliable but not insightful", "Accurate but delayed", "Too technical, not decision-friendly", "I mostly rely on my own understanding"], type: "single" },
+          { id: 5, text: "Q5. How confident are you in the quality of financial information you receive?", options: ["Very confident — timely and decision-oriented", "Generally reliable but not insightful", "Accurate but delayed", "Too technical, not decision-friendly", "I mostly rely on my own understanding"], type: "single" },
           { id: 6, text: "Q6. Which of these statements resonates most with you?", options: ["Growth opportunities excite me more than risks worry me", "I balance growth and risk cautiously", "I worry more about downside than upside", "I avoid major risks unless absolutely necessary"], type: "single" },
           { id: 7, text: "Q7. When things go wrong, what usually causes the most stress?", options: ["Financial strain or liquidity pressure", "Execution gaps in the organization", "People issues or leadership gaps", "External factors beyond control", "Decision-making uncertainty"], type: "single" },
           { id: 8, text: "Q8. How often do you feel the need for a neutral, independent perspective before major decisions?", options: ["Very often", "Sometimes", "Rarely", "Almost never"], type: "single" },
         ],
       },
       {
-        title: "Section B: Self-Discovery – Management & Decision Style",
+        title: "Section B: Self-Discovery — Management & Decision Style",
         questions: [
           { id: 9, text: "Q9. Which role do you play most often in your business?", options: ["Visionary & growth driver", "Financial controller & risk manager", "Operational problem solver", "Relationship builder", "All of the above"], type: "single" },
           { id: 10, text: "Q10. How would you describe your decision-making speed?", options: ["Fast and intuitive", "Fast but data-backed", "Deliberate and cautious", "Slow due to multiple considerations"], type: "single" },
@@ -118,13 +117,22 @@
       const [feedback, setFeedback] = useState("");
       const [error, setError] = useState("");
       const [copySuccess, setCopySuccess] = useState(false);
+      const [debugLogs, setDebugLogs] = useState([]);
 
-      // We keep timeout id in a ref so we can clear it on result
       const timeoutRef = useRef(null);
 
-      // ✅ Listener: receives AI result from Apps Script iframe via postMessage
+      // Debug logger
+      const addDebugLog = (message) => {
+        console.log(`[DEBUG] ${message}`);
+        setDebugLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+      };
+
+      // Listener for postMessage from Apps Script
       useEffect(() => {
         const handler = (event) => {
+          addDebugLog(`Received postMessage from: ${event.origin}`);
+          
+          // More permissive origin check for Google domains
           const origin = event.origin || "";
           const allowed =
             origin.includes("script.google.com") ||
@@ -132,26 +140,38 @@
             origin.includes("google.com") ||
             origin.includes("googleusercontent.com");
 
-          if (!allowed) return;
+          if (!allowed) {
+            addDebugLog(`Rejected message from unauthorized origin: ${origin}`);
+            return;
+          }
+
+          addDebugLog("Message accepted, processing...");
 
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
+            addDebugLog("Timeout cleared");
           }
 
           const data = event.data || {};
+          addDebugLog(`Message data: ${JSON.stringify(data).substring(0, 100)}`);
+
           if (data.ok) {
             let text = data.answer || "No analysis generated.";
             text = String(text).replace(/\*\*/g, "").trim();
             setFeedback(text);
             setStep("result");
+            addDebugLog("Success - moving to result step");
           } else {
-            setError("Analysis Error: " + (data.error || "Unknown error"));
+            const errorMsg = "Analysis Error: " + (data.error || "Unknown error");
+            setError(errorMsg);
+            addDebugLog(`Error received: ${data.error}`);
           }
           setLoading(false);
         };
 
         window.addEventListener("message", handler);
+        addDebugLog("postMessage listener registered");
         return () => window.removeEventListener("message", handler);
       }, []);
 
@@ -178,21 +198,24 @@
         setTimeout(() => setCopySuccess(false), 2000);
       };
 
-      // ✅ Uses iframe+form POST so GitHub Pages can receive result without CORS issues
       const submitDiagnosis = () => {
         if (!SCRIPT_URL || !SCRIPT_URL.endsWith("/exec")) {
           setError("System Error: SCRIPT_URL missing or invalid. It must end with /exec");
+          addDebugLog("ERROR: Invalid SCRIPT_URL");
           return;
         }
 
         setLoading(true);
         setError("");
+        setDebugLogs([]); // Clear previous logs
+        addDebugLog("Starting submission...");
 
-        // Timeout safety so it won't stay stuck forever
+        // Timeout safety
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => {
           setLoading(false);
-          setError("Analysis timed out. Please try again.");
+          setError("Analysis timed out after 30 seconds. Check browser console and try again.");
+          addDebugLog("TIMEOUT after 30 seconds");
         }, 30000);
 
         const systemPrompt = `You are an elite, concise business advisor. 
@@ -213,7 +236,6 @@ CONSTRAINTS:
 
         const userMessage = `User Data: ${JSON.stringify(answers)}`;
 
-        // One payload: logs answers + asks AI
         const payloadObj = {
           timestamp: new Date().toLocaleString(),
           type: "Diagnosis",
@@ -222,7 +244,9 @@ CONSTRAINTS:
           meta: { appUrl: APP_URL }
         };
 
-        // Hidden iframe
+        addDebugLog("Payload created");
+
+        // Create or reuse iframe
         let iframe = document.getElementById("gas_iframe");
         if (!iframe) {
           iframe = document.createElement("iframe");
@@ -230,9 +254,12 @@ CONSTRAINTS:
           iframe.name = "gas_iframe";
           iframe.style.display = "none";
           document.body.appendChild(iframe);
+          addDebugLog("Iframe created");
+        } else {
+          addDebugLog("Reusing existing iframe");
         }
 
-        // Form POST to GAS
+        // Create form
         const form = document.createElement("form");
         form.method = "POST";
         form.action = SCRIPT_URL;
@@ -240,14 +267,17 @@ CONSTRAINTS:
 
         const input = document.createElement("input");
         input.type = "hidden";
-        input.name = "payload"; // GAS must read e.parameter.payload
+        input.name = "payload";
         input.value = JSON.stringify(payloadObj);
 
         form.appendChild(input);
         document.body.appendChild(form);
+        
+        addDebugLog(`Submitting form to: ${SCRIPT_URL}`);
         form.submit();
+        
         document.body.removeChild(form);
-        // Result will come via postMessage listener
+        addDebugLog("Form submitted, waiting for response...");
       };
 
       return (
@@ -267,6 +297,19 @@ CONSTRAINTS:
                 <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100 font-medium">
                   {error}
                 </div>
+              )}
+
+              {loading && debugLogs.length > 0 && (
+                <details className="mb-4 text-left">
+                  <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">
+                    View Debug Logs ({debugLogs.length})
+                  </summary>
+                  <div className="mt-2 p-3 bg-slate-50 rounded text-xs font-mono text-slate-600 max-h-40 overflow-y-auto">
+                    {debugLogs.map((log, i) => (
+                      <div key={i}>{log}</div>
+                    ))}
+                  </div>
+                </details>
               )}
 
               {step === "welcome" && (
