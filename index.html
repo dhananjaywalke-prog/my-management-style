@@ -38,7 +38,7 @@
     // -----------------------------
     // CONFIGURATION (ONLY EDIT THIS)
     // -----------------------------
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3okA2jnXEAv1htoML34TAdsTxqRxhQLCDFwIdyz9px_QgXeoYDBNACdQrN4IXwtm59g/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzF5DymBYLbhx5Xo7HXP_3MNGzADwGqgWAG8LBprvRCGC7Wby9cFxKgRF4unOG44Xsa9A/exec";
     const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/";
     // -----------------------------
 
@@ -130,57 +130,43 @@
       // Listener for postMessage from Apps Script
       useEffect(() => {
         const handler = (event) => {
-          addDebugLog(`Received postMessage from: ${event.origin}`);
-          
-          // Accept messages from any Google domain
-          const origin = event.origin || "";
-          const isGoogle = 
-            origin.includes("google.com") ||
-            origin.includes("googleusercontent.com") ||
-            origin === "null" || // Some iframes send null origin
-            origin === "";
-
-          if (!isGoogle) {
-            addDebugLog(`Rejected message from non-Google origin: ${origin}`);
-            return;
-          }
-
-          addDebugLog("Message accepted, processing...");
-
-          // Check if this is our expected response format
           const data = event.data || {};
           
-          // Ignore messages that aren't our response format
-          if (typeof data !== 'object' || (!data.ok && data.ok !== false)) {
-            addDebugLog("Ignoring non-response message");
-            return;
-          }
+          // Log ALL messages for debugging
+          console.log("[ALL MESSAGES]", event.origin, data);
+          
+          // Check if this is our response (has 'ok' property)
+          if (typeof data === 'object' && (data.ok === true || data.ok === false)) {
+            addDebugLog(`✅ VALID RESPONSE from: ${event.origin}`);
+            
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = null;
+              addDebugLog("Timeout cleared");
+            }
 
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-            addDebugLog("Timeout cleared");
-          }
-
-          addDebugLog(`Response received: ${JSON.stringify(data).substring(0, 100)}`);
-
-          if (data.ok) {
-            let text = data.answer || "No analysis generated.";
-            text = String(text).replace(/\*\*/g, "").trim();
-            setFeedback(text);
-            setStep("result");
-            addDebugLog("Success - moving to result step");
+            if (data.ok) {
+              let text = data.answer || "No analysis generated.";
+              text = String(text).replace(/\*\*/g, "").trim();
+              setFeedback(text);
+              setStep("result");
+              addDebugLog("✅ SUCCESS - showing results");
+            } else {
+              const errorMsg = "Analysis Error: " + (data.error || "Unknown error");
+              setError(errorMsg);
+              addDebugLog(`❌ Error: ${data.error}`);
+            }
+            setLoading(false);
           } else {
-            const errorMsg = "Analysis Error: " + (data.error || "Unknown error");
-            setError(errorMsg);
-            addDebugLog(`Error received: ${data.error}`);
+            // Not our message, ignore silently
+            console.log("[IGNORED] Not a diagnostic response");
           }
-          setLoading(false);
         };
 
-        window.addEventListener("message", handler);
-        addDebugLog("postMessage listener registered");
-        return () => window.removeEventListener("message", handler);
+        window.addEventListener("message", handler, false);
+        addDebugLog("📡 Listening for postMessage from ANY origin");
+        
+        return () => window.removeEventListener("message", handler, false);
       }, []);
 
       const handleSingleSelect = (qId, value) => {
