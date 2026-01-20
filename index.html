@@ -5,19 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Promoter Self-Discovery Diagnostic</title>
 
-  <!-- Tailwind CSS for styling -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React and Babel for running React in the browser -->
+
+  <!-- React + ReactDOM + Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 
   <style>
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -34,13 +33,15 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
-    // --- CONFIGURATION START ---
-    // Paste your Google Apps Script Web App URL here (the one ending with /exec)
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyu-gz76FnS1jN9UdKh2Bu_djoSj2y_HhTgb5s_eAd7dexG8A-TNbsfcJGAC78oUrO30A/exec";
+    // -----------------------------
+    // CONFIGURATION (ONLY EDIT THIS)
+    // -----------------------------
+    // Paste your Google Apps Script Web App URL (must end with /exec)
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyj5SfiwZfmgsYWrYvV7ijiyvv7IZgdIbjA6Hgki28H6fYqoJsGu76MMA8lWsncyaAdXg/exec";
     const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/";
-    // --- CONFIGURATION END ---
+    // -----------------------------
 
     const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
       const [iconHtml, setIconHtml] = useState("");
@@ -59,7 +60,7 @@
                 class: `lucide lucide-${name.toLowerCase()} ${className}`,
                 xmlns: "http://www.w3.org/2000/svg",
               };
-              const attrString = Object.entries(attrs).map(([key, value]) => `${key}="${value}"`).join(" ");
+              const attrString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(" ");
               const childrenString = children.map(([childTag, childAttrs]) => {
                 const childAttrStr = Object.entries(childAttrs).map(([k, v]) => `${k}="${v}"`).join(" ");
                 return `<${childTag} ${childAttrStr}></${childTag}>`;
@@ -72,7 +73,12 @@
         else setTimeout(renderIcon, 100);
       }, [name, size, className, strokeWidth]);
 
-      return <span className="inline-flex items-center justify-center" dangerouslySetInnerHTML={{ __html: iconHtml }} />;
+      return (
+        <span
+          className="inline-flex items-center justify-center"
+          dangerouslySetInnerHTML={{ __html: iconHtml }}
+        />
+      );
     };
 
     const SECTIONS = [
@@ -112,26 +118,42 @@
       const [feedback, setFeedback] = useState("");
       const [error, setError] = useState("");
       const [copySuccess, setCopySuccess] = useState(false);
-  useEffect(() => {
-    const handler = (event) => {
-      const origin = event.origin || "";
-      if (!origin.includes("google.com")) return;
 
-      const data = event.data || {};
-      if (data.ok) {
-        let text = data.answer || "No analysis generated.";
-        text = String(text).replace(/\*\*/g, "").trim();
-        setFeedback(text);
-        setStep('result');
-      } else {
-        setError("Analysis Error: " + (data.error || "Unknown error"));
-      }
-      setLoading(false);
-    };
+      // We keep timeout id in a ref so we can clear it on result
+      const timeoutRef = useRef(null);
 
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, []);
+      // ✅ Listener: receives AI result from Apps Script iframe via postMessage
+      useEffect(() => {
+        const handler = (event) => {
+          const origin = event.origin || "";
+          const allowed =
+            origin.includes("script.google.com") ||
+            origin.includes("script.googleusercontent.com") ||
+            origin.includes("google.com") ||
+            origin.includes("googleusercontent.com");
+
+          if (!allowed) return;
+
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+
+          const data = event.data || {};
+          if (data.ok) {
+            let text = data.answer || "No analysis generated.";
+            text = String(text).replace(/\*\*/g, "").trim();
+            setFeedback(text);
+            setStep("result");
+          } else {
+            setError("Analysis Error: " + (data.error || "Unknown error"));
+          }
+          setLoading(false);
+        };
+
+        window.addEventListener("message", handler);
+        return () => window.removeEventListener("message", handler);
+      }, []);
 
       const handleSingleSelect = (qId, value) => {
         setAnswers((prev) => ({ ...prev, [qId]: value }));
@@ -156,63 +178,78 @@
         setTimeout(() => setCopySuccess(false), 2000);
       };
 
-const submitDiagnosis = () => {
-  if (!SCRIPT_URL) {
-    setError("System Error: SCRIPT_URL missing.");
-    return;
-  }
+      // ✅ Uses iframe+form POST so GitHub Pages can receive result without CORS issues
+      const submitDiagnosis = () => {
+        if (!SCRIPT_URL || !SCRIPT_URL.endsWith("/exec")) {
+          setError("System Error: SCRIPT_URL missing or invalid. It must end with /exec");
+          return;
+        }
 
-  setLoading(true);
-  setError('');
+        setLoading(true);
+        setError("");
 
-  const systemPrompt = `You are an elite, concise business advisor. 
+        // Timeout safety so it won't stay stuck forever
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+          setLoading(false);
+          setError("Analysis timed out. Please try again.");
+        }, 30000);
+
+        const systemPrompt = `You are an elite, concise business advisor. 
 Analyze the diagnostic answers provided.
 
 MANDATORY STRUCTURE:
 1. MANAGEMENT STYLE SUMMARY (1 sharp sentence)
 2. PRIMARY BOTTLENECKS (3 specific bullets based on their answers)
-3. STRATEGIC SCALING INSIGHT
-4. BLIND SPOT
+3. STRATEGIC SCALING INSIGHT (Crucial: Provide 1 actionable insight on how they can scale specifically addressing the limitations they selected in Q11)
+4. BLIND SPOT (1 high-impact warning)
 
 CONSTRAINTS:
-- Under 180 words
-- Plain text only
-- Use (-) for bullets
-- Address user as "You"`;
+- Be extremely brief. Total response under 180 words.
+- NO MARKDOWN BOLDING (**). Use only plain text.
+- Use (-) for bullets.
+- Address the user as "You".
+- Ensure the "Scaling Insight" section is distinct and highly visible.`;
 
-  const userMessage = `User Data: ${JSON.stringify(answers)}`;
+        const userMessage = `User Data: ${JSON.stringify(answers)}`;
 
-  const payload = {
-    timestamp: new Date().toLocaleString(),
-    type: "Diagnosis",
-    answers: answers,
-    prompt: systemPrompt + "\n\n" + userMessage
-  };
+        // One payload: logs answers + asks AI
+        const payloadObj = {
+          timestamp: new Date().toLocaleString(),
+          type: "Diagnosis",
+          answers: answers,
+          prompt: systemPrompt + "\n\n" + userMessage,
+          meta: { appUrl: APP_URL }
+        };
 
-  let iframe = document.getElementById("gas_iframe");
-  if (!iframe) {
-    iframe = document.createElement("iframe");
-    iframe.id = "gas_iframe";
-    iframe.name = "gas_iframe";
-    iframe.style.display = "none";
-    document.body.appendChild(iframe);
-  }
+        // Hidden iframe
+        let iframe = document.getElementById("gas_iframe");
+        if (!iframe) {
+          iframe = document.createElement("iframe");
+          iframe.id = "gas_iframe";
+          iframe.name = "gas_iframe";
+          iframe.style.display = "none";
+          document.body.appendChild(iframe);
+        }
 
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = SCRIPT_URL;
-  form.target = "gas_iframe";
+        // Form POST to GAS
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = SCRIPT_URL;
+        form.target = "gas_iframe";
 
-  const input = document.createElement("input");
-  input.type = "hidden";
-  input.name = "payload";
-  input.value = JSON.stringify(payload);
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "payload"; // GAS must read e.parameter.payload
+        input.value = JSON.stringify(payloadObj);
 
-  form.appendChild(input);
-  document.body.appendChild(form);
-  form.submit();
-  document.body.removeChild(form);
-};
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        // Result will come via postMessage listener
+      };
+
       return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center p-4 sm:p-8 font-sans text-slate-900">
           <div className="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mt-4 sm:mt-10 relative">
@@ -269,6 +306,7 @@ CONSTRAINTS:
                     {SECTIONS[currentSectionIndex].questions.map((q) => (
                       <div key={q.id} className="space-y-4">
                         <p className="text-lg font-semibold text-slate-700 leading-snug">{q.text}</p>
+
                         {q.type === "text" ? (
                           <textarea
                             className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 min-h-[120px] outline-none transition-shadow"
@@ -307,6 +345,7 @@ CONSTRAINTS:
                       <button
                         onClick={() => setCurrentSectionIndex(0)}
                         className="text-slate-400 font-bold hover:text-slate-600 transition-colors"
+                        disabled={loading}
                       >
                         Back
                       </button>
@@ -315,9 +354,7 @@ CONSTRAINTS:
                     )}
 
                     <button
-                      onClick={() =>
-                        currentSectionIndex === 0 ? setCurrentSectionIndex(1) : submitDiagnosis()
-                      }
+                      onClick={() => (currentSectionIndex === 0 ? setCurrentSectionIndex(1) : submitDiagnosis())}
                       disabled={loading}
                       className={`bg-indigo-600 text-white px-10 py-4 rounded-xl font-bold shadow-md transition-all active:scale-95 ${
                         loading ? "opacity-70 cursor-not-allowed" : "hover:bg-indigo-700 hover:shadow-lg"
