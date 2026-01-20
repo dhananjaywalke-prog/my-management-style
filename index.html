@@ -38,7 +38,7 @@
     // -----------------------------
     // CONFIGURATION (ONLY EDIT THIS)
     // -----------------------------
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyw8IFYQqfm47ABdACR0s5Qpot7VcSP2XUd_-hvDStBm1ZHyv4vjCEblezDq4OjibjQtA/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3okA2jnXEAv1htoML34TAdsTxqRxhQLCDFwIdyz9px_QgXeoYDBNACdQrN4IXwtm59g/exec";
     const APP_URL = "https://dhananjaywalke-prog.github.io/my-management-style/";
     // -----------------------------
 
@@ -132,20 +132,29 @@
         const handler = (event) => {
           addDebugLog(`Received postMessage from: ${event.origin}`);
           
-          // More permissive origin check for Google domains
+          // Accept messages from any Google domain
           const origin = event.origin || "";
-          const allowed =
-            origin.includes("script.google.com") ||
-            origin.includes("script.googleusercontent.com") ||
+          const isGoogle = 
             origin.includes("google.com") ||
-            origin.includes("googleusercontent.com");
+            origin.includes("googleusercontent.com") ||
+            origin === "null" || // Some iframes send null origin
+            origin === "";
 
-          if (!allowed) {
-            addDebugLog(`Rejected message from unauthorized origin: ${origin}`);
+          if (!isGoogle) {
+            addDebugLog(`Rejected message from non-Google origin: ${origin}`);
             return;
           }
 
           addDebugLog("Message accepted, processing...");
+
+          // Check if this is our expected response format
+          const data = event.data || {};
+          
+          // Ignore messages that aren't our response format
+          if (typeof data !== 'object' || (!data.ok && data.ok !== false)) {
+            addDebugLog("Ignoring non-response message");
+            return;
+          }
 
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
@@ -153,8 +162,7 @@
             addDebugLog("Timeout cleared");
           }
 
-          const data = event.data || {};
-          addDebugLog(`Message data: ${JSON.stringify(data).substring(0, 100)}`);
+          addDebugLog(`Response received: ${JSON.stringify(data).substring(0, 100)}`);
 
           if (data.ok) {
             let text = data.answer || "No analysis generated.";
@@ -268,6 +276,7 @@ CONSTRAINTS:
         const input = document.createElement("input");
         input.type = "hidden";
         input.name = "payload";
+        input.id = "payload-input";
         input.value = JSON.stringify(payloadObj);
 
         form.appendChild(input);
