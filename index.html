@@ -112,6 +112,26 @@
       const [feedback, setFeedback] = useState("");
       const [error, setError] = useState("");
       const [copySuccess, setCopySuccess] = useState(false);
+  useEffect(() => {
+    const handler = (event) => {
+      const origin = event.origin || "";
+      if (!origin.includes("google.com")) return;
+
+      const data = event.data || {};
+      if (data.ok) {
+        let text = data.answer || "No analysis generated.";
+        text = String(text).replace(/\*\*/g, "").trim();
+        setFeedback(text);
+        setStep('result');
+      } else {
+        setError("Analysis Error: " + (data.error || "Unknown error"));
+      }
+      setLoading(false);
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
       const handleSingleSelect = (qId, value) => {
         setAnswers((prev) => ({ ...prev, [qId]: value }));
@@ -136,72 +156,63 @@
         setTimeout(() => setCopySuccess(false), 2000);
       };
 
-      const submitDiagnosis = async () => {
-        if (!SCRIPT_URL || SCRIPT_URL === "https://script.google.com/macros/s/AKfycbyu-gz76FnS1jN9UdKh2Bu_djoSj2y_HhTgb5s_eAd7dexG8A-TNbsfcJGAC78oUrO30A/exec") {
-          setError("System Error: Please paste your Google Apps Script Web App URL in SCRIPT_URL.");
-          return;
-        }
+const submitDiagnosis = () => {
+  if (!SCRIPT_URL) {
+    setError("System Error: SCRIPT_URL missing.");
+    return;
+  }
 
-        setLoading(true);
-        setError("");
+  setLoading(true);
+  setError('');
 
-        try {
-          // 1) Save to Google Sheet (same behavior as earlier: fire-and-forget)
-          const sheetPayload = {
-            timestamp: new Date().toLocaleString(),
-            type: "Diagnosis",
-            answers: answers,
-          };
-
-          fetch(SCRIPT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(sheetPayload),
-          }).catch(() => { /* ignore */ });
-
-          // 2) AI analysis via Google Apps Script (NO frontend key)
-          const systemPrompt = `You are an elite, concise business advisor. 
+  const systemPrompt = `You are an elite, concise business advisor. 
 Analyze the diagnostic answers provided.
 
 MANDATORY STRUCTURE:
 1. MANAGEMENT STYLE SUMMARY (1 sharp sentence)
 2. PRIMARY BOTTLENECKS (3 specific bullets based on their answers)
-3. STRATEGIC SCALING INSIGHT (Crucial: Provide 1 actionable insight on how they can scale specifically addressing the limitations they selected in Q11)
-4. BLIND SPOT (1 high-impact warning)
+3. STRATEGIC SCALING INSIGHT
+4. BLIND SPOT
 
 CONSTRAINTS:
-- Be extremely brief. Total response under 180 words.
-- NO MARKDOWN BOLDING (**). Use only plain text.
-- Use (-) for bullets.
-- Address the user as "You".
-- Ensure the "Scaling Insight" section is distinct and highly visible.`;
+- Under 180 words
+- Plain text only
+- Use (-) for bullets
+- Address user as "You"`;
 
-          const userMessage = `User Data: ${JSON.stringify(answers)}`;
+  const userMessage = `User Data: ${JSON.stringify(answers)}`;
 
-          const aiRes = await fetch(SCRIPT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt: systemPrompt + "\n\n" + userMessage,
-              meta: { app: APP_URL, type: "Diagnosis" },
-            }),
-          });
+  const payload = {
+    timestamp: new Date().toLocaleString(),
+    type: "Diagnosis",
+    answers: answers,
+    prompt: systemPrompt + "\n\n" + userMessage
+  };
 
-          const result = await aiRes.json();
-          if (!result.ok) throw new Error(result.error || "No response from AI proxy.");
+  let iframe = document.getElementById("gas_iframe");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.id = "gas_iframe";
+    iframe.name = "gas_iframe";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
 
-          let text = result.answer || "No analysis generated.";
-          text = String(text).replace(/\*\*/g, "").trim();
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = SCRIPT_URL;
+  form.target = "gas_iframe";
 
-          setFeedback(text);
-          setStep("result");
-        } catch (err) {
-          setError("Analysis Error: " + err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = JSON.stringify(payload);
 
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+};
       return (
         <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center p-4 sm:p-8 font-sans text-slate-900">
           <div className="max-w-2xl w-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mt-4 sm:mt-10 relative">
